@@ -180,7 +180,7 @@ void playsingle_controller::play_scenario_init(const config& level)
 		gui2::show_transient_message(
 			// TODO: find a better title
 			_("Game Error"),
-			_("This multiplayer game uses an alternative random mode, if you don't know what this message means, then "
+			_("This multiplayer game uses an alternative random mode, if you don’t know what this message means, then "
 			  "most likely someone is cheating or someone reloaded a corrupt game."));
 	}
 }
@@ -330,7 +330,7 @@ void playsingle_controller::play_scenario_main_loop()
 				get_saved_game().statistics().clear_current_scenario();
 			}
 
-			reset_gamestate(*ex.level, (*ex.level)["replay_pos"]);
+			reset_gamestate(*ex.level, (*ex.level)["replay_pos"].to_int());
 
 			for(std::size_t i = 0; i < local_players.size(); ++i) {
 				resources::gameboard->teams()[i].set_local(local_players[i]);

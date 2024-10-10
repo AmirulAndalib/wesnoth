@@ -399,7 +399,7 @@ WML_HANDLER_FUNCTION(move_units_fake,, cfg)
 	for (const vconfig& config : unit_cfgs) {
 		const std::vector<std::string> xvals = utils::split(config["x"]);
 		const std::vector<std::string> yvals = utils::split(config["y"]);
-		int skip_steps = config["skip_steps"];
+		int skip_steps = config["skip_steps"].to_int();
 		fake_unit_ptr u = create_fake_unit(config);
 		units.push_back(u);
 		paths.push_back(fake_unit_path(*u, xvals, yvals));
@@ -638,7 +638,7 @@ WML_HANDLER_FUNCTION(set_global_variable,,pcfg)
 
 WML_HANDLER_FUNCTION(set_variables,, cfg)
 {
-	const t_string& name = cfg["name"];
+	const std::string name = cfg["name"];
 	variable_access_create dest = resources::gamedata->get_variable_access_write(name);
 	if(name.empty()) {
 		ERR_NG << "trying to set a variable with an empty name:\n" << cfg.get_config().debug();
@@ -894,8 +894,16 @@ WML_HANDLER_FUNCTION(unit,, cfg)
 		.allow_rename_side(true)
 		.allow_show(true);
 
-	uc.add_unit(parsed_cfg, &cfg);
+	try
+	{
+		uc.add_unit(parsed_cfg, &cfg);
+	}
+	catch(const unit_type::error& e)
+	{
+		ERR_WML << "Error occured inside [unit]: " << e.what();
 
+		throw;
+	}
 }
 
 } // end namespace game_events

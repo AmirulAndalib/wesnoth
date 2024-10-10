@@ -137,8 +137,8 @@ void builder_window::read(const config& cfg)
 }
 
 builder_window::window_resolution::window_resolution(const config& cfg)
-	: window_width(cfg["window_width"])
-	, window_height(cfg["window_height"])
+	: window_width(cfg["window_width"].to_unsigned())
+	, window_height(cfg["window_height"].to_unsigned())
 	, automatic_placement(cfg["automatic_placement"].to_bool(true))
 	, x(cfg["x"])
 	, y(cfg["y"])
@@ -202,13 +202,13 @@ builder_grid::builder_grid(const config& cfg)
 	for(const auto& row : cfg.child_range("row")) {
 		unsigned col = 0;
 
-		row_grow_factor.push_back(row["grow_factor"]);
+		row_grow_factor.push_back(row["grow_factor"].to_unsigned());
 
 		for(const auto& c : row.child_range("column")) {
 			flags.push_back(implementation::read_flags(c));
-			border_size.push_back(c["border_size"]);
+			border_size.push_back(c["border_size"].to_unsigned());
 			if(rows == 0) {
-				col_grow_factor.push_back(c["grow_factor"]);
+				col_grow_factor.push_back(c["grow_factor"].to_unsigned());
 			}
 
 			widgets.push_back(create_widget_builder(c));
@@ -217,7 +217,7 @@ builder_grid::builder_grid(const config& cfg)
 		}
 
 		if(col == 0) {
-			const t_string msg = VGETTEXT("Grid '$grid' row $row must have at least one column.", {
+			const t_string msg = VGETTEXT("Grid ‘$grid’ row $row must have at least one column.", {
 				{"grid", id}, {"row", std::to_string(rows)}
 			});
 
@@ -229,7 +229,7 @@ builder_grid::builder_grid(const config& cfg)
 		if(rows == 1) {
 			cols = col;
 		} else if(col != cols) {
-			const t_string msg = VGETTEXT("Grid '$grid' row $row has a differing number of columns ($found found, $expected expected)", {
+			const t_string msg = VGETTEXT("Grid ‘$grid’ row $row has a differing number of columns ($found found, $expected expected)", {
 				{"grid", id}, {"row", std::to_string(rows)}, {"found", std::to_string(col)}, {"expected", std::to_string(cols)}
 			});
 
