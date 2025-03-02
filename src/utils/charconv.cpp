@@ -1,5 +1,5 @@
 /*
-	Copyright (C) 2024
+	Copyright (C) 2024 - 2025
 	Part of the Battle for Wesnoth Project https://www.wesnoth.org/
 
 	This program is free software; you can redistribute it and/or modify
@@ -13,9 +13,11 @@
 */
 
 #include "utils/charconv.hpp"
-#include <cctype>
-#include <cstdlib>
+
 #include <cassert>
+#include <cctype>
+#include <clocale>
+#include <cstdlib>
 #include <string>
 
 #ifdef USE_FALLBACK_CHARCONV
@@ -46,7 +48,7 @@ namespace utils::charconv
 	std::enable_if_t<std::is_same_v<T, double> || std::is_same_v<T, float> || std::is_same_v<T, long double>, from_chars_result> from_chars(const char* first, const char* last, T& value, chars_format fmt)
 	{
 		// We don't need the other formats.
-		assert(fmt = chars_format::general);
+		assert(fmt == chars_format::general);
 
 		// Make a copy to make sure its null terminated.
 		std::string buffer = std::string(first, last);

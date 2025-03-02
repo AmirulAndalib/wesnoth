@@ -1,5 +1,5 @@
 /*
-	Copyright (C) 2003 - 2024
+	Copyright (C) 2003 - 2025
 	by David White <dave@whitevine.net>
 	Part of the Battle for Wesnoth Project https://www.wesnoth.org/
 
@@ -195,6 +195,7 @@ display::display(const display_context* dc,
 	, reach_map_()
 	, reach_map_old_()
 	, reach_map_changed_(true)
+	, reach_map_team_index_(0)
 	, fps_handle_(0)
 	, invalidated_hexes_(0)
 	, drawn_hexes_(0)
@@ -1194,8 +1195,7 @@ namespace
 constexpr std::array layer_groups {
 	drawing_layer::terrain_bg,
 	drawing_layer::unit_first,
-	drawing_layer::unit_move_default,
-	drawing_layer::reachmap // Make sure the movement doesn't show above fog and reachmap.
+	drawing_layer::unit_move_default
 };
 
 enum {
@@ -1423,9 +1423,18 @@ void display::draw_label(const theme::label& label)
 			tooltips::add_tooltip(loc,text);
 		}
 	} else if(text.empty() == false) {
-		font::pango_draw_text(true, loc, label.font_size(),
-			text_color, text, loc.x, loc.y
-		);
+		font::pango_text& renderer = font::get_text_renderer();
+		renderer.set_text(text, false);
+		renderer.set_family_class(font::FONT_SANS_SERIF);
+		renderer.set_font_size(label.font_size());
+		renderer.set_font_style(font::pango_text::STYLE_NORMAL);
+		renderer.set_foreground_color(text_color);
+		renderer.set_ellipse_mode(PANGO_ELLIPSIZE_END);
+		renderer.set_maximum_width(loc.w);
+		renderer.set_maximum_height(loc.h, true);
+
+		auto t = renderer.render_and_get_texture();
+		draw::blit(t, rect{ loc.origin(), t.draw_size() });
 	}
 }
 
@@ -2801,13 +2810,13 @@ void display::draw_overlays_at(const map_location& loc)
 		const double ter_sub = context().map().get_terrain_info(loc).unit_submerge();
 
 		drawing_buffer_add(
-			drawing_layer::terrain_bg, loc, [this, tex, ter_sub, ovr_sub = ov.submerge](const rect& dest) mutable {
+			drawing_layer::terrain_bg, loc, [tex, ter_sub, ovr_sub = ov.submerge](const rect& dest) mutable {
 				if(ovr_sub > 0.0 && ter_sub > 0.0) {
 					// Adjust submerge appropriately
 					double submerge = ter_sub * ovr_sub;
 
 					submerge_data data
-						= this->get_submerge_data(dest, submerge, tex.draw_size(), ALPHA_OPAQUE, false, false);
+						= display::get_submerge_data(dest, submerge, tex.draw_size(), ALPHA_OPAQUE, false, false);
 
 					// set clip for dry part
 					// smooth_shaded doesn't use the clip information so it's fine to set it up front
@@ -3281,6 +3290,24 @@ void display::process_reachmap_changes()
 	}
 	reach_map_old_ = reach_map_;
 	reach_map_changed_ = false;
+
+	// Make sure there are teams before trying to access units.
+	if(!context().teams().empty()){
+		// Update the reachmap-context team, the selected unit's team shall override the displayed unit's.
+		if(context().units().count(selectedHex_)) {
+			reach_map_team_index_ = context().get_visible_unit(selectedHex_, viewing_team())->side();
+		} else if(context().get_visible_unit(mouseoverHex_, viewing_team()) != nullptr){
+			reach_map_team_index_ = context().get_visible_unit(mouseoverHex_, viewing_team())->side();
+		} else {
+			/**
+			 * If no unit is selected or displayed, the reachmap-context team should failsafe to
+			 * the viewing team index, this makes sure the team is invalid when getting the reachmap
+			 * images in game_display::get_reachmap_images().
+			 */
+			reach_map_team_index_ = viewing_team_index_;
+		}
+		DBG_DP << "Updated reachmap context team index to " << std::to_string(reach_map_team_index_);
+	}
 }
 
 display *display::singleton_ = nullptr;

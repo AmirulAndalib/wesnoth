@@ -1,5 +1,5 @@
 /*
-	Copyright (C) 2003 - 2024
+	Copyright (C) 2003 - 2025
 	by David White <dave@whitevine.net>
 	Part of the Battle for Wesnoth Project https://www.wesnoth.org/
 
@@ -864,7 +864,6 @@ public:
 	 * Adds children from @a cfg.
 	 */
 	void append_children(const config &cfg);
-	void append_children(config&& cfg);
 
 	/**
 	 * Adds children from @a cfg.

@@ -1,5 +1,5 @@
 /*
-	Copyright (C) 2024
+	Copyright (C) 2024 - 2025
 	by Subhraman Sarkar (babaissarkar) <suvrax@gmail.com>
 	Part of the Battle for Wesnoth Project https://www.wesnoth.org/
 
@@ -112,7 +112,7 @@ point rich_label::get_image_size(config& img_cfg) const {
 std::pair<size_t, size_t> rich_label::add_text(config& curr_item, const std::string& text) {
 	auto& attr = curr_item["text"];
 	size_t start = attr.str().size();
-	attr = attr.str() + std::move(text);
+	attr = attr.str() + text;
 	size_t end = attr.str().size();
 	return { start, end };
 }
@@ -122,12 +122,12 @@ void rich_label::add_attribute(config& curr_item, const std::string& attr_name, 
 		"name"  , attr_name,
 		"start" , start,
 		"end"   , end == 0 ? curr_item["text"].str().size() : end,
-		"value" , std::move(extra_data)
+		"value" , extra_data
 	});
 }
 
 std::pair<size_t, size_t> rich_label::add_text_with_attribute(config& curr_item, const std::string& text, const std::string& attr_name, const std::string& extra_data) {
-	const auto [start, end] = add_text(curr_item, std::move(text));
+	const auto [start, end] = add_text(curr_item, text);
 	add_attribute(curr_item, attr_name, start, end, extra_data);
 	return { start, end };
 }
@@ -424,6 +424,7 @@ std::pair<config, point> rich_label::get_parsed_text(
 
 					col_x += col_widths[col_idx] + 2 * padding_;
 					auto [_, end_cfg] = text_dom.all_children_view().back();
+					end_cfg["maximum_width"] = col_widths[col_idx];
 					end_cfg["actions"] = boost::str(boost::format("([set_var('pos_x', %d), set_var('pos_y', %d), set_var('tw', width - %d - %d)])") % col_x % row_y % col_x % (width/columns));
 
 					DBG_GUI_RL << "jump to next column";
@@ -744,6 +745,7 @@ void rich_label::default_text_config(config* txt_ptr, const t_string& text) {
 		(*txt_ptr)["y"] = "(pos_y)";
 		(*txt_ptr)["w"] = "(text_width)";
 		(*txt_ptr)["h"] = "(text_height)";
+		(*txt_ptr)["parse_text_as_formula"] = false;
 		// tw -> table width, used for wrapping text inside table cols
 		// ww -> wrap width, used for wrapping around floating image
 		// max text width shouldn't go beyond the rich_label's specified width
@@ -755,6 +757,7 @@ void rich_label::default_text_config(config* txt_ptr, const t_string& text) {
 void rich_label::update_canvas()
 {
 	for(canvas& tmp : get_canvases()) {
+		tmp.set_shapes(text_dom_, true);
 		tmp.set_variable("pos_x", wfl::variant(0));
 		tmp.set_variable("pos_y", wfl::variant(0));
 		tmp.set_variable("img_x", wfl::variant(0));
@@ -765,7 +768,6 @@ void rich_label::update_canvas()
 		tmp.set_variable("padding", wfl::variant(padding_));
 		// Disable ellipsization so that text wrapping can work
 		tmp.set_variable("text_wrap_mode", wfl::variant(PANGO_ELLIPSIZE_NONE));
-		tmp.set_cfg(text_dom_, true);
 		tmp.set_variable("text_alpha", wfl::variant(text_alpha_));
 	}
 }

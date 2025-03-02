@@ -1,5 +1,5 @@
 /*
-	Copyright (C) 2005 - 2024
+	Copyright (C) 2005 - 2025
 	by Philippe Plantier <ayin@anathas.org>
 	Copyright (C) 2005 by Guillaume Melquiond <guillaume.melquiond@gmail.com>
 	Copyright (C) 2003 by David White <dave@whitevine.net>
@@ -635,6 +635,13 @@ void read(config& cfg, const std::string& in, abstract_validator* validator)
 {
 	std::istringstream ss(in);
 	parser(cfg, ss, validator)();
+}
+
+config read(std::istream& in, abstract_validator* validator)
+{
+	config cfg;
+	parser(cfg, in, validator)();
+	return cfg;
 }
 
 template<typename decompressor>
