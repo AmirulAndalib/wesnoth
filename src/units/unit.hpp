@@ -1,5 +1,5 @@
 /*
-	Copyright (C) 2003 - 2024
+	Copyright (C) 2003 - 2025
 	by David White <dave@whitevine.net>
 	Part of the Battle for Wesnoth Project https://www.wesnoth.org/
 
@@ -446,6 +446,22 @@ public:
 		unrenamable_ = unrenamable;
 	}
 
+	/**
+	 * Whether this unit can be dismissed.
+	 *
+	 * This flag is used by the Unit Recall dialog.
+	 */
+	bool dismissable() const
+	{
+		return dismissable_;
+	}
+
+	/** A message of why this unit cannot be dismissed. */
+	t_string block_dismiss_message() const
+	{
+		return dismiss_message_;
+	}
+
 	/** A detailed description of this unit. */
 	t_string unit_description() const
 	{
@@ -727,21 +743,14 @@ public:
 
 	/**
 	 * The factor by which the HP bar should be scaled.
-	 * @todo: document further
+	 * Convenience wrapper around the unit_type value.
 	 */
-	double hp_bar_scaling() const
-	{
-		return hp_bar_scaling_;
-	}
-
+	double hp_bar_scaling() const;
 	/**
 	 * The factor by which the XP bar should be scaled.
-	 * @todo: document further
+	 * Convenience wrapper around the unit_type value.
 	 */
-	double xp_bar_scaling() const
-	{
-		return xp_bar_scaling_;
-	}
+	double xp_bar_scaling() const;
 
 	/**
 	 * Whether the unit has been instructed to hold its position.
@@ -2027,6 +2036,8 @@ private:
 	std::string image_mods_;
 
 	bool unrenamable_;
+	bool dismissable_;
+	t_string dismiss_message_;
 
 	int side_;
 
@@ -2095,7 +2106,6 @@ private:
 	std::unique_ptr<unit_animation_component> anim_comp_;
 
 	mutable bool hidden_;
-	double hp_bar_scaling_, xp_bar_scaling_;
 
 	config modifications_;
 	config abilities_;

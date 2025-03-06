@@ -1,5 +1,5 @@
 /*
-	Copyright (C) 2003 - 2024
+	Copyright (C) 2003 - 2025
 	by David White <dave@whitevine.net>
 	Part of the Battle for Wesnoth Project https://www.wesnoth.org/
 
@@ -116,6 +116,8 @@ namespace
 		"experience",
 		"resting",
 		"unrenamable",
+		"dismissable",
+		"block_dismiss_message",
 		"alignment",
 		"canrecruit",
 		"extra_recruit",
@@ -270,6 +272,8 @@ unit::unit(const unit& o)
 	, flag_rgb_(o.flag_rgb_)
 	, image_mods_(o.image_mods_)
 	, unrenamable_(o.unrenamable_)
+	, dismissable_(o.dismissable_)
+	, dismiss_message_(o.dismiss_message_)
 	, side_(o.side_)
 	, gender_(o.gender_)
 	, formula_man_(new unit_formula_manager(o.formula_manager()))
@@ -304,8 +308,6 @@ unit::unit(const unit& o)
 	, modification_descriptions_(o.modification_descriptions_)
 	, anim_comp_(new unit_animation_component(*this, *o.anim_comp_))
 	, hidden_(o.hidden_)
-	, hp_bar_scaling_(o.hp_bar_scaling_)
-	, xp_bar_scaling_(o.xp_bar_scaling_)
 	, modifications_(o.modifications_)
 	, abilities_(o.abilities_)
 	, advancements_(o.advancements_)
@@ -352,6 +354,8 @@ unit::unit(unit_ctor_t)
 	, flag_rgb_()
 	, image_mods_()
 	, unrenamable_(false)
+	, dismissable_(true)
+	, dismiss_message_(_("This unit cannot be dismissed."))
 	, side_(0)
 	, gender_(unit_race::NUM_GENDERS)
 	, formula_man_(new unit_formula_manager())
@@ -386,8 +390,6 @@ unit::unit(unit_ctor_t)
 	, modification_descriptions_()
 	, anim_comp_(new unit_animation_component(*this))
 	, hidden_(false)
-	, hp_bar_scaling_(0)
-	, xp_bar_scaling_(0)
 	, modifications_()
 	, abilities_()
 	, advancements_()
@@ -418,8 +420,6 @@ void unit::init(const config& cfg, bool use_traits, const vconfig* vcfg)
 	//, facing_(map_location::direction::indeterminate)
 	//, anim_comp_(new unit_animation_component(*this))
 	hidden_ = cfg["hidden"].to_bool(false);
-	hp_bar_scaling_ = cfg["hp_bar_scaling"].blank() ? type_->hp_bar_scaling() : cfg["hp_bar_scaling"].to_double();
-	xp_bar_scaling_ = cfg["xp_bar_scaling"].blank() ? type_->xp_bar_scaling() : cfg["xp_bar_scaling"].to_double();
 	random_traits_ = true;
 	generate_name_ = true;
 	side_ = cfg["side"].to_int();
@@ -715,6 +715,15 @@ void unit::init(const config& cfg, bool use_traits, const vconfig* vcfg)
 	experience_ = cfg["experience"].to_int();
 	resting_ = cfg["resting"].to_bool();
 	unrenamable_ = cfg["unrenamable"].to_bool();
+
+	// leader units can't be dismissed by default
+	dismissable_ = cfg["dismissable"].to_bool(!canrecruit_);
+	if(canrecruit_) {
+		dismiss_message_ = _ ("This unit is a leader and cannot be dismissed.");
+	}
+	if(!cfg["block_dismiss_message"].blank()) {
+		dismiss_message_ = cfg["block_dismiss_message"].t_str();
+	}
 
 	// We need to check to make sure that the cfg is not blank and if it
 	// isn't pull that value otherwise it goes with the default of -1.
@@ -1033,8 +1042,6 @@ void unit::advance_to(const unit_type& u_type, bool use_traits)
 	recall_cost_ = new_type.recall_cost();
 	alignment_ = new_type.alignment();
 	max_hit_points_ = new_type.hitpoints();
-	hp_bar_scaling_ = new_type.hp_bar_scaling();
-	xp_bar_scaling_ = new_type.xp_bar_scaling();
 	max_movement_ = new_type.movement();
 	vision_ = new_type.vision(true);
 	jamming_ = new_type.jamming();
@@ -1645,6 +1652,8 @@ void unit::write(config& cfg, bool write_all) const
 	}
 	cfg["flag_rgb"] = flag_rgb_;
 	cfg["unrenamable"] = unrenamable_;
+	cfg["dismissable"] = dismissable_;
+	cfg["block_dismiss_message"] = dismiss_message_;
 
 	cfg["attacks_left"] = attacks_left_;
 	if(write_all || get_attr_changed(UA_MAX_AP)) {
@@ -1780,25 +1789,13 @@ static bool resistance_filter_matches_base(const config& cfg, bool attacker)
 
 int unit::resistance_against(const std::string& damage_name, bool attacker, const map_location& loc, const_attack_ptr weapon, const const_attack_ptr& opp_weapon) const
 {
+	if(opp_weapon){
+		return opp_weapon->effective_damage_type().second;
+	}
 	unit_ability_list resistance_list = get_abilities_weapons("resistance",loc, std::move(weapon), opp_weapon);
 	utils::erase_if(resistance_list, [&](const unit_ability& i) {
 		return !resistance_filter_matches_base(*i.ability_cfg, attacker);
 	});
-	if(opp_weapon){
-		unit_ability_list damage_type_list = opp_weapon->get_specials_and_abilities("damage_type");
-		if(damage_type_list.empty()){
-			return resistance_value(resistance_list, damage_name);
-		}
-		std::string replacement_type = opp_weapon->select_damage_type(damage_type_list, "replacement_type", resistance_list);
-		std::string type_damage = replacement_type.empty() ? damage_name : replacement_type;
-		int max_res = resistance_value(resistance_list, type_damage);
-		for(auto& i : damage_type_list) {
-			if((*i.ability_cfg).has_attribute("alternative_type")){
-				max_res = std::max(max_res , resistance_value(resistance_list, (*i.ability_cfg)["alternative_type"].str()));
-			}
-		}
-		return max_res;
-	}
 	return resistance_value(resistance_list, damage_name);
 }
 
@@ -2785,6 +2782,15 @@ void unit::set_hidden(bool state) const
 	// TODO: this should really hide the halo, not destroy it
 	// We need to get rid of haloes immediately to avoid display glitches
 	anim_comp_->clear_haloes();
+}
+
+double unit::hp_bar_scaling() const
+{
+	return type().hp_bar_scaling();
+}
+double unit::xp_bar_scaling() const
+{
+	return type().xp_bar_scaling();
 }
 
 void unit::set_image_halo(const std::string& halo)

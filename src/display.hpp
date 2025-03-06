@@ -1,5 +1,5 @@
 /*
-	Copyright (C) 2003 - 2024
+	Copyright (C) 2003 - 2025
 	by David White <dave@whitevine.net>
 	Part of the Battle for Wesnoth Project https://www.wesnoth.org/
 
@@ -898,6 +898,8 @@ protected:
 	reach_map reach_map_;
 	reach_map reach_map_old_;
 	bool reach_map_changed_;
+	// The team assigned to the reachmap being drawn
+	std::size_t reach_map_team_index_;
 	void process_reachmap_changes();
 
 	typedef std::map<map_location, std::vector<overlay>> overlay_map;

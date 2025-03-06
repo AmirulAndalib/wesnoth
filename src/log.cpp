@@ -1,5 +1,5 @@
 /*
-	Copyright (C) 2004 - 2024
+	Copyright (C) 2004 - 2025
 	by Guillaume Melquiond <guillaume.melquiond@gmail.com>
 	Copyright (C) 2003 by David White <dave@whitevine.net>
 	Part of the Battle for Wesnoth Project https://www.wesnoth.org/
@@ -461,7 +461,7 @@ log_in_progress::log_in_progress(std::ostream& stream)
 	: stream_(stream)
 {}
 
-void log_in_progress::operator|(formatter&& message)
+void log_in_progress::operator|(const formatter& message)
 {
 	std::scoped_lock lock(log_mutex);
 	for(int i = 0; i < indent; ++i)

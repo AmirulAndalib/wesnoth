@@ -1,5 +1,5 @@
 /*
-	Copyright (C) 2003 - 2024
+	Copyright (C) 2003 - 2025
 	by David White <dave@whitevine.net>
 	Part of the Battle for Wesnoth Project https://www.wesnoth.org/
 
@@ -782,7 +782,7 @@ static int attack_info(const reports::context& rc, const attack_type &at, config
 	{
 		auto ctx = at.specials_context(u.shared_from_this(), hex, u.side() == rc.screen().playing_team().side());
 		int base_damage = at.damage();
-		int specials_damage = at.modified_damage();
+		double specials_damage = at.modified_damage();
 		int damage_multiplier = 100;
 		const_attack_ptr weapon  = at.shared_from_this();
 		unit_alignments::type attack_alignment = weapon->alignment().value_or(u.alignment());
@@ -807,9 +807,9 @@ static int attack_info(const reports::context& rc, const attack_type &at, config
 		unsigned num_attacks = swarm_blows(min_attacks, max_attacks, cur_hp, max_hp);
 
 		color_t dmg_color = font::weapon_color;
-		if ( damage > specials_damage ) {
+		if (damage > std::round(specials_damage)) {
 			dmg_color = font::good_dmg_color;
-		} else if ( damage < specials_damage ) {
+		} else if (damage < std::round(specials_damage)) {
 			dmg_color = font::bad_dmg_color;
 		}
 
@@ -873,8 +873,9 @@ static int attack_info(const reports::context& rc, const attack_type &at, config
 		const string_with_tooltip damage_and_num_attacks {flush(str), flush(tooltip)};
 
 		std::string range = string_table["range_" + at.range()];
-		std::string type = at.damage_type().first;
-		std::set<std::string> alt_types = at.alternative_damage_types();
+		std::pair<std::string, std::set<std::string>> all_damage_types = at.damage_types();
+		std::string type = all_damage_types.first;
+		std::set<std::string> alt_types = all_damage_types.second;
 		std::string lang_type = string_table["type_" + type];
 		for(auto alt_t : alt_types){
 			lang_type += ", " + string_table["type_" + alt_t];

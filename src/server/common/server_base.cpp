@@ -1,5 +1,5 @@
 /*
-	Copyright (C) 2016 - 2024
+	Copyright (C) 2016 - 2025
 	by Sergey Popov <dave@whitevine.net>
 	Part of the Battle for Wesnoth Project https://www.wesnoth.org/
 
@@ -382,7 +382,7 @@ void server_base::coro_send_file(tls_socket_ptr socket, const std::string& filen
 {
 	// We fallback to userspace if using TLS socket because sendfile is not aware of TLS state
 	// TODO: keep in mind possibility of using KTLS instead. This seem to be available only in openssl3 branch for now
-	coro_send_file_userspace(std::move(socket), filename, std::move(yield));
+	coro_send_file_userspace(std::move(socket), filename, yield);
 }
 
 void server_base::coro_send_file(const socket_ptr& socket, const std::string& filename, const boost::asio::yield_context& yield)

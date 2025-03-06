@@ -1,5 +1,5 @@
 /*
-	Copyright (C) 2003 - 2024
+	Copyright (C) 2003 - 2025
 	by David White <dave@whitevine.net>
 	Part of the Battle for Wesnoth Project https://www.wesnoth.org/
 
@@ -98,21 +98,13 @@ public:
 	void modified_attacks(unsigned & min_attacks,
 	                      unsigned & max_attacks) const;
 
-	/**
-	 * Select best damage type based on frequency count for replacement_type and based on highest damage for alternative_type.
-	 *
-	 * @param damage_type_list list of [damage_type] to check.
-	 * @param key_name name of attribute checked 'alternative_type' or 'replacement_type'.
-	 * @param resistance_list list of "resistance" abilities to check for each type of damage checked.
-	 */
-	std::string select_damage_type(const unit_ability_list& damage_type_list, const std::string& key_name, const unit_ability_list& resistance_list) const;
-	/** return a modified damage type and/or add a secondary_type for hybrid use if special is active. */
-	std::pair<std::string, std::string> damage_type() const;
-	/** @return A list of alternative_type damage types. */
-	std::set<std::string> alternative_damage_types() const;
+	/** @return A type()/replacement_type and a list of alternative_types that should be displayed in the selected unit's report. */
+	std::pair<std::string, std::set<std::string>> damage_types() const;
+	/** @return The type of attack used and the resistance value that does the most damage. */
+	std::pair<std::string, int> effective_damage_type() const;
 
 	/** Returns the damage per attack of this weapon, considering specials. */
-	int modified_damage() const;
+	double modified_damage() const;
 
 	/** Return the special weapon value, considering specials.
 	 * @param abil_list The list of special checked.
@@ -236,6 +228,19 @@ private:
 	 */
 	bool special_matches_filter(const config & cfg, const std::string& tag_name, const config & filter) const;
 	/**
+	 * Select best damage type based on frequency count for replacement_type.
+	 *
+	 * @param damage_type_list list of [damage_type] to check.
+	 */
+	std::string select_replacement_type(const unit_ability_list& damage_type_list) const;
+	/**
+	 * Select best damage type based on highest damage for alternative_type.
+	 *
+	 * @param damage_type_list list of [damage_type] to check.
+	 * @param resistance_list list of "resistance" abilities to check for each type of damage checked.
+	 */
+	std::pair<std::string, int> select_alternative_type(const unit_ability_list& damage_type_list, const unit_ability_list& resistance_list) const;
+	/**
 	 * Filter a list of abilities or weapon specials, removing any entries that don't own
 	 * the overwrite_specials attributes.
 	 *
@@ -267,7 +272,7 @@ private:
 	 */
 	bool check_adj_abilities(const config& cfg, const std::string& special, int dir, const unit& from) const;
 	bool special_active(const config& special, AFFECTS whom, const std::string& tag_name,
-	                    const std::string& filter_self ="filter_self") const;
+	                    bool in_abilities_tag = false) const;
 
 /** weapon_specials_impl_self and weapon_specials_impl_adj : check if special name can be added.
 	 * @param[in,out] temp_string the string modified and returned
@@ -359,7 +364,7 @@ private:
 		const config& special,
 		AFFECTS whom,
 		const std::string& tag_name,
-		const std::string& filter_self ="filter_self"
+		bool in_abilities_tag = false
 	);
 
 	// Used via specials_context() to control which specials are
